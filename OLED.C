@@ -1,0 +1,790 @@
+
+#include"OLED.H"
+#include "msp430.h"
+/*************Pin Define***************/
+#define SCL_HIGH  P1OUT|=BIT3           //SCL P1.0
+#define SCL_LOW   P1OUT&=~BIT3
+#define SDA_HIGH  P1OUT|=BIT4           //SDA P1.1
+#define SDA_LOW   P1OUT&=~BIT4
+/****************************************************/
+void jiance(int t);
+void Initial_LY096BG30();
+void Delay_50ms(unsigned int Del_50ms);
+void Delay_1ms(unsigned int Del_1ms);
+void fill_picture(unsigned char fill_Data);
+void Picture_1();
+void IIC_Start();
+void IIC_Stop();
+void Write_IIC_Command(unsigned char IIC_Command);
+void Write_IIC_Data(unsigned char IIC_Data);
+void Write_IIC_Byte(unsigned char IIC_Byte);
+/***********************Initial code*********************/
+void Initial_LY096BG30()
+{
+Write_IIC_Command(0xAE);   //display off
+Write_IIC_Command(0x20); //Set Memory Addressing Mode
+Write_IIC_Command(0x10); //00,Horizontal Addressing Mode;01,Vertical Addressing Mode;10,Page Addressing Mode (RESET);11,Invalid
+Write_IIC_Command(0xb0); //Set Page Start Address for Page Addressing Mode,0-7
+Write_IIC_Command(0xc8); //Set COM Output Scan Direction
+Write_IIC_Command(0x00);//---set low column address
+Write_IIC_Command(0x10);//---set high column address
+Write_IIC_Command(0x40);//--set start line address
+Write_IIC_Command(0x81);//--set contrast control register
+Write_IIC_Command(0x7f);
+Write_IIC_Command(0xa1);//--set segment re-map 0 to 127
+Write_IIC_Command(0xa6);//--set normal display
+Write_IIC_Command(0xa8);//--set multiplex ratio(1 to 64)
+Write_IIC_Command(0x3F);//
+Write_IIC_Command(0xa4);//0xa4,Output follows RAM content;0xa5,Output ignores RAM content
+Write_IIC_Command(0xd3);//-set display offset
+Write_IIC_Command(0x00);//-not offset
+Write_IIC_Command(0xd5);//--set display clock divide ratio/oscillator frequency
+Write_IIC_Command(0xf0);//--set divide ratio
+Write_IIC_Command(0xd9);//--set pre-charge period
+Write_IIC_Command(0x22); //
+Write_IIC_Command(0xda);//--set com pins hardware configuration
+Write_IIC_Command(0x12);
+Write_IIC_Command(0xdb);//--set vcomh
+Write_IIC_Command(0x20);//0x20,0.77xVcc
+Write_IIC_Command(0x8d);//--set DC-DC enable
+Write_IIC_Command(0x14);//
+Write_IIC_Command(0xaf);//--turn on oled panel
+}
+/***********************Picture Code**************************/
+//128*64个像素点；
+//一个0x00,是16位，规定的是从上往下的十六个点的取值。而后一列接着一列横向往下写数据。
+unsigned char  show1[]=
+{
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+
+};
+//20*16
+unsigned char  *show2;//用一个指针型的指向需要显示的数组，方式更灵活
+unsigned char show3[]=
+{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x78,0x78,0x78,0x78,0x00,0x00,/*"未命名文件",0*/
+};
+/**********************************************
+//IIC Start
+**********************************************/
+void IIC_Start()
+{
+   SCL_HIGH;
+   //Delay_us(1);
+   SDA_HIGH;
+   //Delay_us(1);
+   SDA_LOW;
+  // Delay_us(1);
+   SCL_LOW;
+  // Delay_us(1);
+}
+/**********************************************
+//IIC Stop
+**********************************************/
+void IIC_Stop()
+{
+     SCL_LOW;
+   //Delay_us(1);
+   SDA_LOW;
+   //Delay_us(1);
+    SCL_HIGH;
+   //Delay_us(1);
+   SDA_HIGH;
+   //Delay_us(1);
+}
+/**********************************************
+// IIC Write byte
+**********************************************/
+void Write_IIC_Byte(unsigned char IIC_Byte)
+{
+unsigned char i;
+for(i=0;i<8;i++)
+{
+  if(IIC_Byte & 0x80)  //1?0?
+   SDA_HIGH;
+  else
+   SDA_LOW;
+  //Delay_us(1);
+   SCL_HIGH;
+  //Delay_us(1);
+   SCL_LOW;
+  //Delay_us(1);
+  IIC_Byte<<=1;   //loop
+}
+  SDA_HIGH;
+//Delay_us(1);
+SCL_HIGH;
+//Delay_us(1);
+  SCL_LOW;
+//Delay_us(1);
+}
+void Write_IIC_Byte2(unsigned char IIC_Byte)
+{
+unsigned char i;
+for(i=0;i<8;i++)
+{
+  if(IIC_Byte & 0x80)  //1?0?
+   SDA_HIGH;
+
+  else
+ //  SDA_LOW;
+	  SDA_HIGH;
+	  //Delay_us(1);
+   SCL_HIGH;
+  //Delay_us(1);
+   SCL_LOW;
+  //Delay_us(1);
+  IIC_Byte<<=1;   //loop
+}
+  SDA_HIGH;
+//Delay_us(1);
+SCL_HIGH;
+//Delay_us(1);
+  SCL_LOW;
+//Delay_us(1);
+}
+/**********************************************
+// IIC Write Command
+**********************************************/
+void Write_IIC_Command(unsigned char IIC_Command)
+{
+   IIC_Start();
+   Write_IIC_Byte(0x78);            //Slave address,SA0=0
+   Write_IIC_Byte(0x00);   //write command
+   Write_IIC_Byte(IIC_Command);
+   IIC_Stop();
+}
+void Write_IIC_Command2(unsigned char IIC_Command)
+{
+   IIC_Start();
+   Write_IIC_Byte(0x78);            //Slave address,SA0=0
+   Write_IIC_Byte(0x00);   //write command
+   Write_IIC_Byte2(IIC_Command);
+   IIC_Stop();
+}
+/**********************************************
+// IIC Write Data
+**********************************************/
+void Write_IIC_Data(unsigned char IIC_Data)
+{
+   IIC_Start();
+   Write_IIC_Byte(0x78);
+   Write_IIC_Byte(0x40);   //write data
+   Write_IIC_Byte(IIC_Data);
+   IIC_Stop();
+}
+void Write_IIC_Data2(unsigned char IIC_Data)
+{
+   IIC_Start();
+   Write_IIC_Byte(0x78);
+   Write_IIC_Byte(0x64);   //write data
+   Write_IIC_Byte(IIC_Data);
+   IIC_Stop();
+}
+/********************************************
+// fill_Picture
+********************************************/
+void fill_picture(unsigned char fill_Data)
+{
+unsigned char m,n;
+for(m=0;m<8;m++)
+{
+  Write_IIC_Command(0xb0+m);  //page0-page1
+  Write_IIC_Command(0x00);  //low column start address
+  Write_IIC_Command(0x10);  //high column start address
+  for(n=0;n<128;n++)
+   {
+    Write_IIC_Data(fill_Data);
+   }
+}
+}
+/******************************************
+// picture
+******************************************/
+//a,b是开始于哪一行，那一列
+//128*64个点，横向一列接着一列写，共128列，竖向以8位为一次一列写入的值，竖向写64/8=8行。
+//a,b分别为开始于哪一行，那一列，在实际写的过程中，要注意不要让数据的位数超过像素点的总和，不然会出现重头开始接着写的情况。
+//b,每加一，即使增加16列
+
+void Picture_1()
+{
+  unsigned char x,y,a=0,b=0;
+  unsigned int i=0;
+  for(y=0;y<8;y++)//这里y的取值，是写多少行
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<129;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(show1[i++]);
+        }
+    }
+}
+void Picture_2(float p)//显示float型的数据，000.00形式
+{
+  unsigned char x,y,a=0,b=4;
+  unsigned int i=0,t,c;
+  c=(unsigned int)(p*100);      //将数据变成整数,显示的是三位小数，可调整
+  t=c%10;c=c/10;       //取数的第一位
+  jiance(t);           //判断该数的值，0-9
+  for(y=0;y<2;y++)
+    {
+      Write_IIC_Command(0xb0+y+a);
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b+3);  //显示最后一位,在同一行，列数是从后往前写的。
+      for(x=0;x<16;x++)
+        {
+          Write_IIC_Data(show2[i++]);
+        }
+    }
+  t=c%10;c=c/10;i=0;
+    jiance(t);
+    for(y=0;y<2;y++)
+      {
+        Write_IIC_Command(0xb0+y+a);
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+2);
+        for(x=0;x<16;x++)
+          {
+            Write_IIC_Data(show2[i++]);
+          }
+      }i=0;
+    for(y=0;y<2;y++)
+      {
+        Write_IIC_Command(0xb0+y+a);
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+1);
+        for(x=0;x<16;x++)
+          {
+            Write_IIC_Data(show3[i++]);
+          }
+      }i=0;
+    t=c%10;c=c/10;i=0;
+      jiance(t);
+      for(y=0;y<2;y++)
+        {
+          Write_IIC_Command(0xb0+y+a);
+          Write_IIC_Command(0x00);
+          Write_IIC_Command(0x10+b+0);
+          for(x=0;x<16;x++)
+            {
+              Write_IIC_Data(show2[i++]);
+            }
+        }i=0;
+
+/*      t=c%10;c=c/10;i=0;
+        jiance(t);
+        for(y=0;y<2;y++)
+          {
+            Write_IIC_Command(0xb0+y+a);
+            Write_IIC_Command(0x00);
+            Write_IIC_Command(0x10+b+1);
+            for(x=0;x<16;x++)
+              {
+                Write_IIC_Data(show2[i++]);
+              }
+          }
+        t=c%10;c=c/10;i=0;
+          jiance(t);
+          for(y=0;y<2;y++)
+            {
+              Write_IIC_Command(0xb0+y+a);
+              Write_IIC_Command(0x00);
+              Write_IIC_Command(0x10+b);
+              for(x=0;x<16;x++)
+                {
+                  Write_IIC_Data(show2[i++]);
+                }
+            }*/
+}
+void Picture_3()
+{
+  unsigned char x,y,a=0,b=0;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(shu[i++]);
+        }
+    }i=0;
+    for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+      {
+        Write_IIC_Command(0xb0+y+a);//从哪一行开始
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+1);//从那一列开始
+        for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+          {
+            Write_IIC_Data(ru[i++]);
+          }
+      }i=0;
+      for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+        {
+          Write_IIC_Command(0xb0+y+a);//从哪一行开始
+          Write_IIC_Command(0x00);
+          Write_IIC_Command(0x10+b+2);//从那一列开始
+          for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+            {
+              Write_IIC_Data(maohao[i++]);
+            }
+        }i=0;
+        for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+          {
+            Write_IIC_Command(0xb0+y+a);//从哪一行开始
+            Write_IIC_Command(0x00);
+            Write_IIC_Command(0x10+b+3);//从那一列开始
+            for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+              {
+                Write_IIC_Data(zheng[i++]);
+              }
+          }i=0;
+          for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+            {
+              Write_IIC_Command(0xb0+y+a);//从哪一行开始
+              Write_IIC_Command(0x00);
+              Write_IIC_Command(0x10+b+4);//从那一列开始
+              for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+                {
+                  Write_IIC_Data(xian[i++]);
+                }
+            }i=0;
+            for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+              {
+                Write_IIC_Command(0xb0+y+a);//从哪一行开始
+                Write_IIC_Command(0x00);
+                Write_IIC_Command(0x10+b+5);//从那一列开始
+                for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+                  {
+                    Write_IIC_Data(xiegang[i++]);
+                  }
+              }i=0;
+              for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+                {
+                  Write_IIC_Command(0xb0+y+a);//从哪一行开始
+                  Write_IIC_Command(0x00);
+                  Write_IIC_Command(0x10+b+6);//从那一列开始
+                  for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+                    {
+                      Write_IIC_Data(fang[i++]);
+                    }
+                }i=0;
+                for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+                  {
+                    Write_IIC_Command(0xb0+y+a);//从哪一行开始
+                    Write_IIC_Command(0x00);
+                    Write_IIC_Command(0x10+b+7);//从那一列开始
+                    for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+                      {
+                        Write_IIC_Data(bo[i++]);
+                      }
+                  }i=0;
+
+
+}
+void Picture_4()
+{
+  unsigned char x,y,a=2,b=0;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b+2);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(dang[i++]);
+        }
+    }i=0;
+    for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+      {
+        Write_IIC_Command(0xb0+y+a);//从哪一行开始
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+3);//从那一列开始
+        for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+          {
+            Write_IIC_Data(qian[i++]);
+          }
+      }i=0;
+      for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+        {
+          Write_IIC_Command(0xb0+y+a);//从哪一行开始
+          Write_IIC_Command(0x00);
+          Write_IIC_Command(0x10+b+4);//从那一列开始
+          for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+            {
+              Write_IIC_Data(mo[i++]);
+            }
+        }i=0;
+        for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+          {
+            Write_IIC_Command(0xb0+y+a);//从哪一行开始
+            Write_IIC_Command(0x00);
+            Write_IIC_Command(0x10+b+5);//从那一列开始
+            for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+              {
+                Write_IIC_Data(shi1[i++]);
+              }
+          }i=0;
+
+}
+void Picture_5(float p)//显示float型的数据，000.00形式
+{
+  unsigned char x,y,a=2,b=4;
+  unsigned int i=0,t,c;
+  c=(unsigned int)(p*100);      //将数据变成整数,显示的是三位小数，可调整
+  t=c%10;c=c/10;       //取数的第一位
+  jiance(t);           //判断该数的值，0-9
+  for(y=0;y<2;y++)
+    {
+      Write_IIC_Command(0xb0+y+a);
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b+3);  //显示最后一位,在同一行，列数是从后往前写的。
+      for(x=0;x<16;x++)
+        {
+          Write_IIC_Data(show2[i++]);
+        }
+    }
+  t=c%10;c=c/10;i=0;
+    jiance(t);
+    for(y=0;y<2;y++)
+      {
+        Write_IIC_Command(0xb0+y+a);
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+2);
+        for(x=0;x<16;x++)
+          {
+            Write_IIC_Data(show2[i++]);
+          }
+      }i=0;
+    for(y=0;y<2;y++)
+      {
+        Write_IIC_Command(0xb0+y+a);
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+1);
+        for(x=0;x<16;x++)
+          {
+            Write_IIC_Data(show3[i++]);
+          }
+      }i=0;
+    t=c%10;c=c/10;i=0;
+      jiance(t);
+      for(y=0;y<2;y++)
+        {
+          Write_IIC_Command(0xb0+y+a);
+          Write_IIC_Command(0x00);
+          Write_IIC_Command(0x10+b+0);
+          for(x=0;x<16;x++)
+            {
+              Write_IIC_Data(show2[i++]);
+            }
+        }i=0;
+
+/*      t=c%10;c=c/10;i=0;
+        jiance(t);
+        for(y=0;y<2;y++)
+          {
+            Write_IIC_Command(0xb0+y+a);
+            Write_IIC_Command(0x00);
+            Write_IIC_Command(0x10+b+1);
+            for(x=0;x<16;x++)
+              {
+                Write_IIC_Data(show2[i++]);
+              }
+          }
+        t=c%10;c=c/10;i=0;
+          jiance(t);
+          for(y=0;y<2;y++)
+            {
+              Write_IIC_Command(0xb0+y+a);
+              Write_IIC_Command(0x00);
+              Write_IIC_Command(0x10+b);
+              for(x=0;x<16;x++)
+                {
+                  Write_IIC_Data(show2[i++]);
+                }
+            }*/
+}
+
+void Picture_6()
+{
+  unsigned char x,y,a=6,b=0;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(zi[i++]);
+        }
+    }i=0;
+    for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+      {
+        Write_IIC_Command(0xb0+y+a);//从哪一行开始
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+1);//从那一列开始
+        for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+          {
+            Write_IIC_Data(dong[i++]);
+          }
+      }i=0;
+      for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+        {
+          Write_IIC_Command(0xb0+y+a);//从哪一行开始
+          Write_IIC_Command(0x00);
+          Write_IIC_Command(0x10+b+2);//从那一列开始
+          for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+            {
+              Write_IIC_Data(shu[i++]);
+            }
+        }i=0;
+        for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+          {
+            Write_IIC_Command(0xb0+y+a);//从哪一行开始
+            Write_IIC_Command(0x00);
+            Write_IIC_Command(0x10+b+3);//从那一列开始
+            for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+              {
+                Write_IIC_Data(chu[i++]);
+              }
+          }i=0;
+          for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+            {
+              Write_IIC_Command(0xb0+y+a);//从哪一行开始
+              Write_IIC_Command(0x00);
+              Write_IIC_Command(0x10+b+4);//从那一列开始
+              for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+                {
+                  Write_IIC_Data(maohao[i++]);
+                }
+            }i=0;
+
+
+
+}
+
+void Picture_7()
+{
+  unsigned char x,y,a=6,b=6;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(guan[i++]);
+        }
+    }
+}
+void Picture_8(float p)//显示float型的数据，000.00形式
+{
+  unsigned char x,y,a=6,b=6;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(kai[i++]);
+        }
+    }
+}
+void Picture_9()
+{
+  unsigned char x,y,a=4,b=0;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(shou[i++]);
+        }
+    }i=0;
+    for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+      {
+        Write_IIC_Command(0xb0+y+a);//从哪一行开始
+        Write_IIC_Command(0x00);
+        Write_IIC_Command(0x10+b+1);//从那一列开始
+        for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+          {
+            Write_IIC_Data(dong[i++]);
+          }
+      }i=0;
+      for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+        {
+          Write_IIC_Command(0xb0+y+a);//从哪一行开始
+          Write_IIC_Command(0x00);
+          Write_IIC_Command(0x10+b+2);//从那一列开始
+          for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+            {
+              Write_IIC_Data(zeng[i++]);
+            }
+        }i=0;
+        for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+          {
+            Write_IIC_Command(0xb0+y+a);//从哪一行开始
+            Write_IIC_Command(0x00);
+            Write_IIC_Command(0x10+b+3);//从那一列开始
+            for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+              {
+                Write_IIC_Data(yii[i++]);
+              }
+          }i=0;
+          for(y=0;y<2;y++)//这里y的取值，是写多少列,一列是写8个元素点
+            {
+              Write_IIC_Command(0xb0+y+a);//从哪一行开始
+              Write_IIC_Command(0x00);
+              Write_IIC_Command(0x10+b+4);//从那一列开始
+              for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+                {
+                  Write_IIC_Data(maohao[i++]);
+                }
+            }i=0;
+
+}
+void Picture_10(float p)//显示float型的数据，000.00形式
+{
+  unsigned char x,y,a=4,b=6;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(kai[i++]);
+        }
+    }
+}
+void Picture_11()
+{
+  unsigned char x,y,a=4,b=6;
+  unsigned int i=0;
+  for(y=0;y<2;y++)//这里y的取值，是写多少行,一行是写8个元素点
+    {
+      Write_IIC_Command(0xb0+y+a);//从哪一行开始
+      Write_IIC_Command(0x00);
+      Write_IIC_Command(0x10+b);//从那一列开始
+      for(x=0;x<16;x++)//这里x的取值，是写多少列后开始转行。
+        {
+          Write_IIC_Data(guan[i++]);
+        }
+    }
+}
+/***********************Delay****************************************/
+void Delay_50ms(unsigned int Del_50ms)  //
+{
+unsigned int m;
+for(;Del_50ms>0;Del_50ms--)
+  for(m=6245;m>0;m--);
+}
+void Delay_1ms(unsigned int Del_1ms)  //
+{
+unsigned char j;
+while(Del_1ms--)
+{
+  for(j=0;j<123;j++);
+}
+}
+void jiance(int t)//判断数字，确定应该显示的数据
+{
+	if(t==0)
+		show2=LING;
+	if(t==1)
+		show2=YI;
+	if(t==2)
+		show2=ER;
+	if(t==3)
+		show2=SAN;
+	if(t==4)
+		show2=SI;
+	if(t==5)
+		show2=WU;
+	if(t==6)
+		show2=LIU;
+	if(t==7)
+		show2=QI;
+	if(t==8)
+		show2=BA;
+	if(t==9)
+		show2=JIU;
+	}
+
+/*******************************Main*******************************/
+void OLED(void)
+{
+WDTCTL=WDTPW+WDTHOLD;
+        P1DIR=0XFF;
+        P1OUT=0X00;
+Initial_LY096BG30();
+Delay_1ms(5);
+  fill_picture(0xff); Delay_50ms(25);
+  fill_picture(0xf0); Delay_50ms(25);
+  Picture_1();  Delay_50ms(25);//刷屏，初始显示
+
+//  Picture_2();Delay_50ms(50);//具体显示数据
+  Picture_3();//顶行写：当前步进
+  Picture_4();//写：当前电流
+  Picture_6();//写：是否关断
+  Picture_9();//写：电流误差
+
+
+}
