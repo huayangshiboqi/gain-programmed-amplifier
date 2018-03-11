@@ -12,7 +12,7 @@ void adjustment1(unsigned int i)
     P7DIR|=BIT4;
     P3DIR|=BIT7;
     P4DIR|=BIT0+BIT3;
-    P8DIR|=BIT2;                                //后一个DAC的管脚定义
+    P8DIR|=BIT2;                                // 后一个DAC的管脚定义
 	if(i==0)
 	{
 		                P1OUT&=~BIT6;
